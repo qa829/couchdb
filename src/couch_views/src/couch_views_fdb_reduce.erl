@@ -10,21 +10,24 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
-% indexing
--define(VIEW_UPDATE_SEQ, 0).
--define(VIEW_ID_INFO, 1).
--define(VIEW_ID_RANGE, 2).
--define(VIEW_MAP_RANGE, 3).
--define(VIEW_REDUCE_RANGE, 4).
 
--define(VIEW_ROW_COUNT, 0).
--define(VIEW_KV_SIZE, 1).
+-module(couch_views_fdb_reduce).
 
--define(VIEW_ROW_KEY, 0).
--define(VIEW_ROW_VALUE, 1).
 
--define(VIEW_REDUCE_EXACT, 0).
--define(VIEW_REDUCE_GROUP, 1).
+-export([
+%%    write_doc/4
+]).
 
-% jobs api
--define(INDEX_JOB_TYPE, <<"views">>).
+% _id keys = {?DB_VIEWS, Sig, ?VIEW_REDUCE_ID_RANGE, DocId, ViewId} = [TotalKeys, TotalSize, UniqueKeys]
+
+%%write_doc(TxDb, Sig, ViewIds, Doc) ->
+%%    #{
+%%        id := DocId,
+%%        reduce_results := ReduceResults
+%%    } = Doc,
+%%    lists:foreach(fun({ViewId, NewRows}) ->
+%%        % update reduce index
+%%        ok
+%%    end, lists:zip(ViewIds, ReduceResults)).
+
+

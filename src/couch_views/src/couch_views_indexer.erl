@@ -21,6 +21,7 @@
     init/0
 ]).
 
+
 -include("couch_views.hrl").
 -include_lib("couch/include/couch_db.hrl").
 -include_lib("couch_mrview/include/couch_mrview.hrl").
@@ -100,7 +101,8 @@ update(#{} = Db, Mrst0, State0) ->
         } = State2,
 
         {Mrst1, MappedDocs} = map_docs(Mrst0, DocAcc),
-        write_docs(TxDb, Mrst1, MappedDocs, State2),
+        Results = run_reduce(Mrst1, MappedDocs),
+        write_docs(TxDb, Mrst1, Results, State2),
 
         case Count < Limit of
             true ->
@@ -194,6 +196,10 @@ map_docs(Mrst, Docs) ->
             Change#{results => ListResults}
     end,
     {Mrst1, lists:map(MapFun, Docs)}.
+
+
+run_reduce(Mrst, MappedResults) ->
+    couch_views_reduce:run_reduce(Mrst, MappedResults).
 
 
 write_docs(TxDb, Mrst, Docs, State) ->

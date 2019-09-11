@@ -13,6 +13,7 @@
 -module(couch_views_reader).
 
 -export([
+    read_reduce/6,
     read/6
 ]).
 
@@ -21,6 +22,114 @@
 -include_lib("couch/include/couch_db.hrl").
 -include_lib("couch_mrview/include/couch_mrview.hrl").
 -include_lib("fabric/include/fabric2.hrl").
+
+
+read_reduce(Db, Mrst, ViewName, UserCallback, UserAcc0, Args) ->
+    #mrst{
+        language = Lang,
+        sig = Sig,
+        views = Views
+    } = Mrst,
+
+    ViewId = get_view_id(Lang, Args, ViewName, Views),
+    Fun = fun handle_reduce_row/3,
+
+    try
+        fabric2_fdb:transactional(Db, fun(TxDb) ->
+            Meta = get_meta(TxDb, Mrst, ViewId, Args),
+            UserAcc1 = maybe_stop(UserCallback(Meta, UserAcc0)),
+
+            Acc0 = #{
+                db => TxDb,
+                skip => Args#mrargs.skip,
+                mrargs => undefined,
+                callback => UserCallback,
+                acc => UserAcc1
+            },
+
+            Acc1 = lists:foldl(fun(KeyArgs, KeyAcc0) ->
+                Opts = reduce_mrargs_to_fdb_options(KeyArgs),
+                KeyAcc1 = KeyAcc0#{
+                    mrargs := KeyArgs
+                },
+                couch_views_fdb:fold_reduce_idx(
+                    TxDb,
+                    Sig,
+                    ViewId,
+                    Opts,
+                    Fun,
+                    KeyAcc1
+                )
+            end, Acc0, expand_keys_args(Args)),
+
+            #{
+                acc := UserAcc2
+            } = Acc1,
+            {ok, maybe_stop(UserCallback(complete, UserAcc2))}
+        end)
+    catch throw:{done, Out} ->
+        {ok, Out}
+    end.
+
+
+reduce_mrargs_to_fdb_options(Args) ->
+    #mrargs{
+%%        start_key = StartKey0,
+%%        start_key_docid = StartKeyDocId,
+%%        end_key = EndKey0,
+%%        end_key_docid = EndKeyDocId,
+        direction = Direction,
+        limit = Limit,
+        skip = Skip,
+        group_level = GroupLevel
+%%        inclusive_end = InclusiveEnd
+    } = Args,
+
+%%    GroupLevelEnd = [{end_key, couch_views_encoding:encode(GroupLevel + 1, key)}],
+    GroupLevelEnd = [{end_key, GroupLevel + 1}],
+
+%%    StartKey1 = if StartKey0 == undefined -> undefined; true ->
+%%        couch_views_encoding:encode(StartKey0, key)
+%%    end,
+%%
+%%    StartKeyOpts = case {StartKey1, StartKeyDocId} of
+%%        {undefined, _} ->
+%%            [];
+%%        {StartKey1, StartKeyDocId} ->
+%%            [{start_key, {StartKey1, StartKeyDocId}}]
+%%    end,
+%%
+%%    EndKey1 = if EndKey0 == undefined -> undefined; true ->
+%%        couch_views_encoding:encode(EndKey0, key)
+%%    end,
+%%
+%%    EndKeyOpts = case {EndKey1, EndKeyDocId, Direction} of
+%%        {undefined, _, _} ->
+%%            [];
+%%        {EndKey1, <<>>, rev} when not InclusiveEnd ->
+%%            % When we iterate in reverse with
+%%            % inclusive_end=false we have to set the
+%%            % EndKeyDocId to <<255>> so that we don't
+%%            % include matching rows.
+%%            [{end_key_gt, {EndKey1, <<255>>}}];
+%%        {EndKey1, <<255>>, _} when not InclusiveEnd ->
+%%            % When inclusive_end=false we need to
+%%            % elide the default end_key_docid so as
+%%            % to not sort past the docids with the
+%%            % given end key.
+%%            [{end_key_gt, {EndKey1}}];
+%%        {EndKey1, EndKeyDocId, _} when not InclusiveEnd ->
+%%            [{end_key_gt, {EndKey1, EndKeyDocId}}];
+%%        {EndKey1, EndKeyDocId, _} when InclusiveEnd ->
+%%            [{end_key, {EndKey1, EndKeyDocId}}]
+%%    end,
+
+    [
+        {dir, Direction},
+        {limit, Limit * 2 + Skip * 2},
+        {streaming_mode, want_all}
+    ] ++ GroupLevelEnd.
+%%    ] ++ StartKeyOpts ++ EndKeyOpts.
 
 
 read(Db, Mrst, ViewName, UserCallback, UserAcc0, Args) ->
@@ -113,11 +222,28 @@ handle_row(DocId, Key, Value, Acc) ->
     UserAcc1 = maybe_stop(UserCallback({row, Row}, UserAcc0)),
     Acc#{acc := UserAcc1}.
 
+handle_reduce_row(_Key, _Value, #{skip := Skip} = Acc) when Skip > 0 ->
+    Acc#{skip := Skip - 1};
+
+handle_reduce_row(Key, Value, Acc) ->
+    #{
+        callback := UserCallback,
+        acc := UserAcc0
+    } = Acc,
+
+    Row = [
+        {key, Key},
+        {value, Value}
+    ],
+
+    UserAcc1 = maybe_stop(UserCallback({row, Row}, UserAcc0)),
+    Acc#{acc := UserAcc1}.
+
 
 get_view_id(Lang, Args, ViewName, Views) ->
     case couch_mrview_util:extract_view(Lang, Args, ViewName, Views) of
         {map, View, _Args} -> View#mrview.id_num;
-        {red, {_Idx, _Lang, View}} -> View#mrview.id_num
+        {red, {_Idx, _Lang, View}, _Args} -> View#mrview.id_num
     end.
 
 
