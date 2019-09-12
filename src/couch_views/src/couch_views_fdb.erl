@@ -53,7 +53,7 @@
 % Type = ?VIEW_KEY | ?VIEW_ROW
 
 % Reduce Range
-%{<db> ?DB_VIEWS, Sig, ?VIEW_REDUCE_RANGE, ViewId, GroupLevel, Key,
+%{<db> ?DB_VIEWS, Sig, ?VIEW_REDUCE_RANGE, ViewId, Key, GroupLevel,
 %   ReduceType, RowType} = Value | UnEncodedKey
 % ReduceType = VIEW_REDUCE_EXACT | ?VIEW_REDUCE_GROUP
 % RowType = ?VIEW_KEY | ?VIEW_ROW
@@ -145,7 +145,21 @@ fold_reduce_idx(TxDb, Sig, ViewId, Options, Callback, Acc0) ->
         db_prefix := DbPrefix
     } = TxDb,
 
+    #{
+        mrargs := MrArgs
+    } = Acc0,
+
+    #mrargs{
+        group_level = GroupLevel,
+        group = Group
+    } = MrArgs,
+
     ReduceIdxPrefix = reduce_idx_prefix(DbPrefix, Sig, ViewId),
+
+    Group1 = case {GroupLevel, Group} of
+        {0, true} -> exact;
+        _ -> grouping
+    end,
 
     FoldAcc = #{
         prefix => ReduceIdxPrefix,
@@ -153,7 +167,9 @@ fold_reduce_idx(TxDb, Sig, ViewId, Options, Callback, Acc0) ->
         docid => undefined,
         callback => Callback,
         acc => Acc0,
-        group_level => undefined,
+        group_level => GroupLevel,
+        group => Group1,
+        prev_exact_key => undefined,
         reduce_type => undefined,
 
         next => key,
@@ -173,13 +189,12 @@ reduce_fold_fwd({RowKey, EncodedOriginalKey}, #{next := key} = Acc) ->
         prefix := Prefix
     } = Acc,
 
-    {GroupLevel, SortKey, ReduceType, ?VIEW_ROW_KEY} =
+    {SortKey, _RowGroupLevel, ReduceType, ?VIEW_ROW_KEY} =
         erlfdb_tuple:unpack(RowKey, Prefix),
     Acc#{
         next := value,
         key := couch_views_encoding:decode(EncodedOriginalKey),
         sort_key := SortKey,
-        group_level := GroupLevel,
         reduce_type := ReduceType
     };
 
@@ -189,30 +204,72 @@ reduce_fold_fwd({RowKey, EncodedValue}, #{next := value} = Acc) ->
         key := Key,
         sort_key := SortKey,
         group_level := GroupLevel,
+        group := Group,
         reduce_type := ReduceType,
         callback := UserCallback,
-        acc := UserAcc0
+        acc := UserAcc0,
+        prev_exact_key := PrevExactKey
     } = Acc,
+
 
     % We're asserting there that this row is paired
     % correctly with the previous row by relying on
     % a badmatch if any of these values don't match.
-    {GroupLevel, SortKey, ReduceType, ?VIEW_ROW_VALUE} =
+    {SortKey, RowGroupLevel, ReduceType, ?VIEW_ROW_VALUE} =
         erlfdb_tuple:unpack(RowKey, Prefix),
 
     % TODO: Handle more than uint
     Value = ?bin2uint(EncodedValue),
-    io:format("FWD VAL ~p ~p ~p ~n", [Key, GroupLevel, Value]),
-    UserAcc1 = UserCallback(Key, Value, UserAcc0),
+    io:format("FWD VAL ~p ~p ~p ~p ~n", [Key, RowGroupLevel, Value, ReduceType]),
+    io:format("GROUP SETTINGS ~p ~p ~n", [Group, GroupLevel]),
+    UserAcc1 = case should_return_row(PrevExactKey, Key, Group, GroupLevel, RowGroupLevel, ReduceType) of
+        true ->
+            UserCallback(Key, Value, UserAcc0);
+        false ->
+            UserAcc0
+    end,
+
+    PrevExactKey1 = maybe_update_prev_exact_key(PrevExactKey, Key, ReduceType),
 
     Acc#{
         next := key,
         key := undefined,
         sort_key := undefined,
-        group_level := undefined,
         reduce_type := undefined,
-        acc := UserAcc1
+        acc := UserAcc1,
+        prev_exact_key := PrevExactKey1
     }.
+
+
+should_return_row(_PrevExactKey, _CurrentKey, exact, _GroupLevel,
+    _RowGroupLevel, ?VIEW_REDUCE_EXACT) ->
+    true;
+
+should_return_row(_PrevExactKey, _CurrentKey, exact, _GroupLevel,
+    _RowGroupLevel, ?VIEW_REDUCE_GROUP) ->
+    false;
+
+should_return_row(_PrevExactKey, _CurrentKey, _Group, GroupLevel,
+    RowGroupLevel, ?VIEW_REDUCE_EXACT) when RowGroupLevel =< GroupLevel ->
+    true;
+
+should_return_row(PrevExactKey, PrevExactKey, _Group, GroupLevel, GroupLevel,
+    ?VIEW_REDUCE_GROUP) ->
+    false;
+
+should_return_row(_PrevExactKey, _CurrentKey, _Group, GroupLevel, GroupLevel,
+    ?VIEW_REDUCE_GROUP) ->
+    true;
+
+should_return_row(_, _, _, _, _, _) ->
+    false.
+
+
+maybe_update_prev_exact_key(PrevExactKey, _NewKey, ?VIEW_REDUCE_GROUP) ->
+    PrevExactKey;
+
+maybe_update_prev_exact_key(_PrevExactKey, NewKey, ?VIEW_REDUCE_EXACT) ->
+    NewKey.
 
 
 write_doc(TxDb, Sig, _ViewIds, #{deleted := true} = Doc) ->
@@ -449,15 +506,15 @@ update_reduce_idx(TxDb, Sig, ViewId, DocId, ExistingKeys, NewRows) ->
 %%
     {ExactKVsToAdd, GroupKVsToAdd} = process_reduce_rows(NewRows),
     ReduceIdxPrefix = reduce_idx_prefix(DbPrefix, Sig, ViewId),
-%%    add_reduce_kvs(Tx, ReduceIdxPrefix, ExactKVsToAdd, ?VIEW_REDUCE_EXACT),
+    add_reduce_kvs(Tx, ReduceIdxPrefix, ExactKVsToAdd, ?VIEW_REDUCE_EXACT),
     add_reduce_kvs(Tx, ReduceIdxPrefix, GroupKVsToAdd, ?VIEW_REDUCE_GROUP).
 
 
 add_reduce_kvs(Tx, ReduceIdxPrefix, KVsToAdd, ReduceType) ->
     lists:foreach(fun({Key1, Key2, Val, GroupLevel}) ->
-        KK = reduce_idx_key(ReduceIdxPrefix, GroupLevel, Key1,
+        KK = reduce_idx_key(ReduceIdxPrefix, Key1, GroupLevel,
             ReduceType, ?VIEW_ROW_KEY),
-        VK = reduce_idx_key(ReduceIdxPrefix, GroupLevel, Key1,
+        VK = reduce_idx_key(ReduceIdxPrefix, Key1, GroupLevel,
             ReduceType, ?VIEW_ROW_VALUE),
         ok = erlfdb:set(Tx, KK, Key2),
         ok = erlfdb:add(Tx, VK, Val)
@@ -469,9 +526,8 @@ reduce_idx_prefix(DbPrefix, Sig, ViewId) ->
     erlfdb_tuple:pack(Key, DbPrefix).
 
 
-reduce_idx_key(ReduceIdxPrefix, GroupLevel, ReduceKey, ReduceType, RowType) ->
-    io:format("GROUP LEVEL ~p ~n", [GroupLevel]),
-    Key = {GroupLevel, ReduceKey, ReduceType, RowType},
+reduce_idx_key(ReduceIdxPrefix, ReduceKey, GroupLevel, ReduceType, RowType) ->
+    Key = {ReduceKey, GroupLevel, ReduceType, RowType},
     erlfdb_tuple:pack(Key, ReduceIdxPrefix).
 
 

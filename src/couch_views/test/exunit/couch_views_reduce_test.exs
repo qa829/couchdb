@@ -40,28 +40,28 @@ defmodule CouchViewsReduceTest do
     }
   end
 
-#  test "group=true count reduce", context do
-#        args = %{
-#            :reduce => true,
-#            :group => true,
+  test "group=true count reduce", context do
+        args = %{
+            :reduce => true,
+            :group => true
 #            :limit => 9
-#        }
-#
-#        {:ok, res} = run_query(context, args)
-#        IO.inspect(res, label: "OUT")
-#
-#        assert res == [
-#                   {:row, [key: 1, value: 2]},
-#                   {:row, [key: 2, value: 2]},
-#                   {:row, [key: 3, value: 2]},
-#                   {:row, [key: [1, 1], value: 1]},
-#                   {:row, [key: [1, 2, 6], value: 1]},
-#                   {:row, [key: [2, 1], value: 1]},
-#                   {:row, [key: [2, 3, 6], value: 1]},
-#                   {:row, [key: [3, 1], value: 1]},
-#                   {:row, [key: [3, 4, 5], value: 1]}
-#               ]
-#    end
+        }
+
+        {:ok, res} = run_query(context, args)
+        IO.inspect(res, label: "OUT")
+
+        assert res == [
+                   {:row, [key: 1, value: 2]},
+                   {:row, [key: 2, value: 2]},
+                   {:row, [key: 3, value: 2]},
+                   {:row, [key: [1, 1], value: 1]},
+                   {:row, [key: [1, 2, 6], value: 1]},
+                   {:row, [key: [2, 1], value: 1]},
+                   {:row, [key: [2, 3, 6], value: 1]},
+                   {:row, [key: [3, 1], value: 1]},
+                   {:row, [key: [3, 4, 5], value: 1]}
+               ]
+    end
 
   test "group=1 count reduce", context do
       args = %{
@@ -80,6 +80,47 @@ defmodule CouchViewsReduceTest do
                  {:row, [key: [1], value: 2]},
                  {:row, [key: [2], value: 2]},
                  {:row, [key: [3], value: 2]}
+             ]
+  end
+
+  test "group=2 count reduce", context do
+      args = %{
+          :reduce => true,
+          :group_level => 2
+#          :limit => 9
+      }
+
+      {:ok, res} = run_query(context, args)
+      IO.inspect(res, label: "OUT")
+
+      assert res == [
+                 {:row, [key: 1, value: 2]},
+                 {:row, [key: 2, value: 2]},
+                 {:row, [key: 3, value: 2]},
+                 {:row, [key: [1, 1], value: 1]},
+                 {:row, [key: [1, 2], value: 1]},
+                 {:row, [key: [2, 1], value: 1]},
+                 {:row, [key: [2, 3], value: 1]},
+                 {:row, [key: [3, 1], value: 1]},
+                 {:row, [key: [3, 4], value: 1]}
+             ]
+  end
+
+  test "group=2 count reduce with limit = 3", context do
+      args = %{
+          :reduce => true,
+          :group_level => 2,
+          :limit => 4
+      }
+
+      {:ok, res} = run_query(context, args)
+      IO.inspect(res, label: "OUT")
+
+      assert res == [
+                 {:row, [key: 1, value: 2]},
+                 {:row, [key: 2, value: 2]},
+                 {:row, [key: 3, value: 2]},
+                 {:row, [key: [1, 1], value: 1]}
              ]
   end
 

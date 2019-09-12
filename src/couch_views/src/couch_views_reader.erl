@@ -39,12 +39,18 @@ read_reduce(Db, Mrst, ViewName, UserCallback, UserAcc0, Args) ->
             Meta = get_meta(TxDb, Mrst, ViewId, Args),
             UserAcc1 = maybe_stop(UserCallback(Meta, UserAcc0)),
 
+            #mrargs{
+                limit = Limit
+            } = Args,
+
             Acc0 = #{
                 db => TxDb,
                 skip => Args#mrargs.skip,
                 mrargs => undefined,
                 callback => UserCallback,
-                acc => UserAcc1
+                acc => UserAcc1,
+                row_count => 0,
+                limit => Limit
             },
 
             Acc1 = lists:foldl(fun(KeyArgs, KeyAcc0) ->
@@ -81,12 +87,17 @@ reduce_mrargs_to_fdb_options(Args) ->
         direction = Direction,
         limit = Limit,
         skip = Skip,
-        group_level = GroupLevel
+        group_level = GroupLevel,
+        group = Group
 %%        inclusive_end = InclusiveEnd
     } = Args,
 
-%%    GroupLevelEnd = [{end_key, couch_views_encoding:encode(GroupLevel + 1, key)}],
-    GroupLevelEnd = [{end_key, GroupLevel + 1}],
+    GroupExact = Group == true andalso GroupLevel == 0,
+
+    GroupLevelEnd = case GroupExact of
+        true -> [];
+        false -> [{end_key, {<<255>>, GroupLevel + 1}}]
+    end,
 
 %%    StartKey1 = if StartKey0 == undefined -> undefined; true ->
 %%        couch_views_encoding:encode(StartKey0, key)
@@ -126,7 +137,8 @@ reduce_mrargs_to_fdb_options(Args) ->
 
     [
         {dir, Direction},
-        {limit, Limit * 2 + Skip * 2},
+%%        {limit, Limit * 2 + Skip * 2},
+%%        {streaming_mode, stream_large}
         {streaming_mode, want_all}
     ] ++ GroupLevelEnd.
 %%    ] ++ StartKeyOpts ++ EndKeyOpts.
@@ -226,9 +238,12 @@ handle_reduce_row(_Key, _Value, #{skip := Skip} = Acc) when Skip > 0 ->
     Acc#{skip := Skip - 1};
 
 handle_reduce_row(Key, Value, Acc) ->
+    io:format("ACC ~p ~n", [Acc]),
     #{
         callback := UserCallback,
-        acc := UserAcc0
+        acc := UserAcc0,
+        row_count := RowCount,
+        limit := Limit
     } = Acc,
 
     Row = [
@@ -236,8 +251,18 @@ handle_reduce_row(Key, Value, Acc) ->
         {value, Value}
     ],
 
+    RowCountNext = RowCount + 1,
+
     UserAcc1 = maybe_stop(UserCallback({row, Row}, UserAcc0)),
-    Acc#{acc := UserAcc1}.
+    Acc1 = Acc#{acc := UserAcc1, row_count := RowCountNext},
+
+    case RowCountNext == Limit of
+        true ->
+            UserAcc2 = maybe_stop(UserCallback(complete, UserAcc1)),
+            maybe_stop({stop, UserAcc2});
+        false ->
+            Acc1
+    end.
 
 
 get_view_id(Lang, Args, ViewName, Views) ->
