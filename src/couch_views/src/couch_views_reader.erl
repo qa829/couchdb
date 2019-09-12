@@ -138,8 +138,8 @@ reduce_mrargs_to_fdb_options(Args) ->
     [
         {dir, Direction},
 %%        {limit, Limit * 2 + Skip * 2},
-%%        {streaming_mode, stream_large}
-        {streaming_mode, want_all}
+        {streaming_mode, large}
+%%        {streaming_mode, want_all}
     ] ++ GroupLevelEnd.
 %%    ] ++ StartKeyOpts ++ EndKeyOpts.
 
