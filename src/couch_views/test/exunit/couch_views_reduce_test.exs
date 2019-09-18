@@ -41,94 +41,120 @@ defmodule CouchViewsReduceTest do
   end
 
   test "group=true count reduce", context do
-        args = %{
-            :reduce => true,
-            :group => true
-#            :limit => 9
-        }
+    args = %{
+      :reduce => true,
+      :group => true
+      #            :limit => 9
+    }
 
-        {:ok, res} = run_query(context, args)
-        IO.inspect(res, label: "OUT")
+    {:ok, res} = run_query(context, args, "baz")
+    IO.inspect(res, label: "OUT")
 
-        assert res == [
-                   {:row, [key: 1, value: 2]},
-                   {:row, [key: 2, value: 2]},
-                   {:row, [key: 3, value: 2]},
-                   {:row, [key: [1, 1], value: 1]},
-                   {:row, [key: [1, 2, 6], value: 1]},
-                   {:row, [key: [2, 1], value: 1]},
-                   {:row, [key: [2, 3, 6], value: 1]},
-                   {:row, [key: [3, 1], value: 1]},
-                   {:row, [key: [3, 4, 5], value: 1]}
-               ]
-    end
-
-  test "group=1 count reduce", context do
-      args = %{
-          :reduce => true,
-          :group_level => 1
-#          :limit => 6
-      }
-
-      {:ok, res} = run_query(context, args)
-      IO.inspect(res, label: "OUT")
-
-      assert res == [
-                 {:row, [key: 1, value: 2]},
-                 {:row, [key: 2, value: 2]},
-                 {:row, [key: 3, value: 2]},
-                 {:row, [key: [1], value: 2]},
-                 {:row, [key: [2], value: 2]},
-                 {:row, [key: [3], value: 2]}
-             ]
+    assert res == [
+             {:row, [key: 1, value: 2]},
+             {:row, [key: 2, value: 2]},
+             {:row, [key: 3, value: 2]},
+             {:row, [key: [1, 1], value: 1]},
+             {:row, [key: [1, 1, 5], value: 1]},
+             {:row, [key: [1, 2, 6], value: 1]},
+             {:row, [key: [2, 1], value: 1]},
+             {:row, [key: [2, 3, 6], value: 1]},
+             {:row, [key: [3, 1], value: 1]},
+             {:row, [key: [3, 1, 5], value: 1]},
+             {:row, [key: [3, 4, 5], value: 1]}
+           ]
   end
 
+#  test "group=1 count reduce", context do
+#    args = %{
+#      :reduce => true,
+#      :group_level => 1
+#      #          :limit => 6
+#    }
+#
+#    {:ok, res} = run_query(context, args, "baz")
+#    IO.inspect(res, label: "OUT")
+#
+#    assert res == [
+#             {:row, [key: 1, value: 2]},
+#             {:row, [key: 2, value: 2]},
+#             {:row, [key: 3, value: 2]},
+#             {:row, [key: [1], value: 2]},
+#             {:row, [key: [2], value: 2]},
+#             {:row, [key: [3], value: 2]}
+#           ]
+#  end
+#
   test "group=2 count reduce", context do
-      args = %{
-          :reduce => true,
-          :group_level => 2
-#          :limit => 9
-      }
+    args = %{
+      :reduce => true,
+      :group_level => 2,
+      :limit => 9
+    }
 
-      {:ok, res} = run_query(context, args)
-      IO.inspect(res, label: "OUT")
+    {:ok, res} = run_query(context, args, "baz")
+    IO.inspect(res, label: "OUT")
 
-      assert res == [
-                 {:row, [key: 1, value: 2]},
-                 {:row, [key: 2, value: 2]},
-                 {:row, [key: 3, value: 2]},
-                 {:row, [key: [1, 1], value: 1]},
-                 {:row, [key: [1, 2], value: 1]},
-                 {:row, [key: [2, 1], value: 1]},
-                 {:row, [key: [2, 3], value: 1]},
-                 {:row, [key: [3, 1], value: 1]},
-                 {:row, [key: [3, 4], value: 1]}
-             ]
+    assert res == [
+             {:row, [key: 1, value: 2]},
+             {:row, [key: 2, value: 2]},
+             {:row, [key: 3, value: 2]},
+             {:row, [key: [1, 1], value: 2]},
+             {:row, [key: [1, 2], value: 1]},
+             {:row, [key: [2, 1], value: 1]},
+             {:row, [key: [2, 3], value: 1]},
+             {:row, [key: [3, 1], value: 2]},
+             {:row, [key: [3, 4], value: 1]}
+           ]
   end
+#
+#  test "group=2 count reduce with limit = 3", context do
+#    args = %{
+#      :reduce => true,
+#      :group_level => 2,
+#      :limit => 4
+#    }
+#
+#    {:ok, res} = run_query(context, args, "baz")
+#    IO.inspect(res, label: "OUT")
+#
+#    assert res == [
+#             {:row, [key: 1, value: 2]},
+#             {:row, [key: 2, value: 2]},
+#             {:row, [key: 3, value: 2]},
+#             {:row, [key: [1, 1], value: 1]}
+#           ]
+#  end
+#
+#  # [
+#  #  row: [key: [2019, 1, 2], value: 1],
+#  #  row: [key: [2019, 1, 4], value: 1],
+#  #  row: [key: [2019, 2, 1], value: 1],
+#  #  row: [key: [2019, 2, 3], value: 1]
+#  # ]
+#
+#  test "group=2 count reduce with startkey", context do
+#    args = %{
+#      #          :reduce => true,
+#      #          :group_level => 2,
+#      :start_key => [2019, 1, 4]
+#      #          :limit => 4
+#    }
+#
+#    {:ok, res} = run_query(context, args, "boom")
+#    IO.inspect(res, label: "OUT")
+#
+#    assert res == [
+#             {:row, [key: [2019, 1], value: 1]},
+#             {:row, [key: [2019, 2], value: 2]}
+#           ]
+#  end
 
-  test "group=2 count reduce with limit = 3", context do
-      args = %{
-          :reduce => true,
-          :group_level => 2,
-          :limit => 4
-      }
-
-      {:ok, res} = run_query(context, args)
-      IO.inspect(res, label: "OUT")
-
-      assert res == [
-                 {:row, [key: 1, value: 2]},
-                 {:row, [key: 2, value: 2]},
-                 {:row, [key: 3, value: 2]},
-                 {:row, [key: [1, 1], value: 1]}
-             ]
-  end
-
-  defp run_query(context, args) do
+  defp run_query(context, args, view) do
     db = context[:db]
     ddoc = context[:ddoc]
 
-    :couch_views.query(db, ddoc, "baz", &__MODULE__.default_cb/2, [], args)
+    :couch_views.query(db, ddoc, view, &__MODULE__.default_cb/2, [], args)
   end
 
   def default_cb(:complete, acc) do
@@ -190,13 +216,44 @@ defmodule CouchViewsReduceTest do
                     emit(doc.value, doc.value);
                     emit([doc.value, 1], doc.value);
                     emit([doc.value, doc.value + 1, doc.group.length], doc.value);
+
+                    if (doc.value === 3) {
+                      emit([1, 1, 5], 1);
+                      emit([doc.value, 1, 5], 1);
+                    }
                    }
                   """},
                  {"reduce", "_count"}
                ]}},
              {"boom",
               {[
-                 {"map", "function(doc) {emit([doc._id, doc.value], doc.value);}"},
+                 {"map",
+                  """
+                  function(doc) {
+                      var month = 1;
+                      if (doc.value % 2) {
+                          month = 2;
+                      }
+                      emit([2019, month, doc.value], doc.value);
+                  }
+                  """},
+                 {"reduce", "_count"}
+               ]}},
+             {"max",
+              {[
+                 {"map",
+                  """
+                  function(doc) {
+                      emit(doc.value, doc.value);
+                      emit(doc.value, doc.value);
+                      emit([doc.value, 1], doc.value);
+                      emit([doc.value, doc.value + 1, doc.group.length], doc.value);
+
+                      if (doc.value === 3) {
+                        emit([doc.value, 1, 5], 1);
+                      }
+                  }
+                  """},
                  {"reduce", "_count"}
                ]}}
            ]}}

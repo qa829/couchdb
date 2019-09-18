@@ -169,7 +169,7 @@ fold_reduce_idx(TxDb, Sig, ViewId, Options, Callback, Acc0) ->
         acc => Acc0,
         group_level => GroupLevel,
         group => Group1,
-        prev_exact_key => undefined,
+        prev_group_key => undefined,
         reduce_type => undefined,
 
         next => key,
@@ -208,7 +208,7 @@ reduce_fold_fwd({RowKey, EncodedValue}, #{next := value} = Acc) ->
         reduce_type := ReduceType,
         callback := UserCallback,
         acc := UserAcc0,
-        prev_exact_key := PrevExactKey
+        prev_group_key := PrevGroupKey
     } = Acc,
 
 
@@ -222,14 +222,14 @@ reduce_fold_fwd({RowKey, EncodedValue}, #{next := value} = Acc) ->
     Value = ?bin2uint(EncodedValue),
     io:format("FWD VAL ~p ~p ~p ~p ~n", [Key, RowGroupLevel, Value, ReduceType]),
     io:format("GROUP SETTINGS ~p ~p ~n", [Group, GroupLevel]),
-    UserAcc1 = case should_return_row(PrevExactKey, Key, Group, GroupLevel, RowGroupLevel, ReduceType) of
+    UserAcc1 = case should_return_row(PrevGroupKey, Key, Group, GroupLevel, RowGroupLevel, ReduceType) of
         true ->
             UserCallback(Key, Value, UserAcc0);
         false ->
             UserAcc0
     end,
 
-    PrevExactKey1 = maybe_update_prev_exact_key(PrevExactKey, Key, ReduceType),
+    PrevGroupKey1 = maybe_update_prev_group_key(PrevGroupKey, Key, ReduceType),
 
     Acc#{
         next := key,
@@ -237,24 +237,24 @@ reduce_fold_fwd({RowKey, EncodedValue}, #{next := value} = Acc) ->
         sort_key := undefined,
         reduce_type := undefined,
         acc := UserAcc1,
-        prev_exact_key := PrevExactKey1
+        prev_group_key := PrevGroupKey1
     }.
 
 
-should_return_row(_PrevExactKey, _CurrentKey, exact, _GroupLevel,
-    _RowGroupLevel, ?VIEW_REDUCE_EXACT) ->
-    true;
-
-should_return_row(_PrevExactKey, _CurrentKey, exact, _GroupLevel,
+should_return_row(_PrevGroupKey, _CurrentKey, exact, _GroupLevel,
     _RowGroupLevel, ?VIEW_REDUCE_GROUP) ->
     false;
 
-should_return_row(_PrevExactKey, _CurrentKey, _Group, GroupLevel,
-    RowGroupLevel, ?VIEW_REDUCE_EXACT) when RowGroupLevel =< GroupLevel ->
+should_return_row(_PrevGroupKey, _CurrentKey, exact, _GroupLevel,
+    _RowGroupLevel, ?VIEW_REDUCE_EXACT) ->
     true;
 
-should_return_row(PrevExactKey, PrevExactKey, _Group, GroupLevel, GroupLevel,
-    ?VIEW_REDUCE_GROUP) ->
+should_return_row(_PrevGroupKey, _CurrentKey, _Group, GroupLevel,
+    RowGroupLevel, ?VIEW_REDUCE_EXACT) when RowGroupLevel < GroupLevel ->
+    true;
+
+should_return_row(PrevGroupKey, PrevGroupKey, _Group, GroupLevel, GroupLevel,
+    ?VIEW_REDUCE_EXACT) ->
     false;
 
 should_return_row(_PrevExactKey, _CurrentKey, _Group, GroupLevel, GroupLevel,
@@ -265,11 +265,11 @@ should_return_row(_, _, _, _, _, _) ->
     false.
 
 
-maybe_update_prev_exact_key(PrevExactKey, _NewKey, ?VIEW_REDUCE_GROUP) ->
-    PrevExactKey;
+maybe_update_prev_group_key(_PrevGroupKey, NewKey, ?VIEW_REDUCE_GROUP) ->
+    NewKey;
 
-maybe_update_prev_exact_key(_PrevExactKey, NewKey, ?VIEW_REDUCE_EXACT) ->
-    NewKey.
+maybe_update_prev_group_key(PrevGroupKey, _NewKey, ?VIEW_REDUCE_EXACT) ->
+    PrevGroupKey.
 
 
 write_doc(TxDb, Sig, _ViewIds, #{deleted := true} = Doc) ->

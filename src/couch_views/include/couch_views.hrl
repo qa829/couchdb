@@ -23,8 +23,8 @@
 -define(VIEW_ROW_KEY, 0).
 -define(VIEW_ROW_VALUE, 1).
 
--define(VIEW_REDUCE_EXACT, 0).
--define(VIEW_REDUCE_GROUP, 1).
+-define(VIEW_REDUCE_GROUP, 0).
+-define(VIEW_REDUCE_EXACT, 1).
 
 % jobs api
 -define(INDEX_JOB_TYPE, <<"views">>).
