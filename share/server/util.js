@@ -97,7 +97,8 @@ var Couch = {
 
     try {
       if(typeof CoffeeScript === "undefined") {
-        functionObject = evalcx(source, sandbox, name);
+        var rewrittenFun = rewriteFunInt(source);
+        functionObject = evalcx(rewrittenFun, sandbox, name);
       } else {
         var transpiled = CoffeeScript.compile(source, {bare: true});
         functionObject = evalcx(transpiled, sandbox, name);
