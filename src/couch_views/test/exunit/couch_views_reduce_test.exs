@@ -40,115 +40,130 @@ defmodule CouchViewsReduceTest do
     }
   end
 
-  test "group=true count reduce", context do
+  #  test "group=true count reduce", context do
+  #    args = %{
+  #      :reduce => true,
+  #      :group => true
+  #      #            :limit => 9
+  #    }
+  #
+  #    {:ok, res} = run_query(context, args, "baz")
+  #    IO.inspect(res, label: "OUT")
+  #
+  #    assert res == [
+  #             {:row, [key: 1, value: 2]},
+  #             {:row, [key: 2, value: 2]},
+  #             {:row, [key: 3, value: 2]},
+  #             {:row, [key: [1, 1], value: 1]},
+  #             {:row, [key: [1, 1, 5], value: 1]},
+  #             {:row, [key: [1, 2, 6], value: 1]},
+  #             {:row, [key: [2, 1], value: 1]},
+  #             {:row, [key: [2, 3, 6], value: 1]},
+  #             {:row, [key: [3, 1], value: 1]},
+  #             {:row, [key: [3, 1, 5], value: 1]},
+  #             {:row, [key: [3, 4, 5], value: 1]}
+  #           ]
+  #  end
+
+  #  test "group=1 count reduce", context do
+  #    args = %{
+  #      :reduce => true,
+  #      :group_level => 1
+  #      #          :limit => 6
+  #    }
+  #
+  #    {:ok, res} = run_query(context, args, "baz")
+  #    IO.inspect(res, label: "OUT")
+  #
+  #    assert res == [
+  #             {:row, [key: 1, value: 2]},
+  #             {:row, [key: 2, value: 2]},
+  #             {:row, [key: 3, value: 2]},
+  #             {:row, [key: [1], value: 2]},
+  #             {:row, [key: [2], value: 2]},
+  #             {:row, [key: [3], value: 2]}
+  #           ]
+  #  end
+  #
+  #  test "group=2 count reduce", context do
+  #    args = %{
+  #      :reduce => true,
+  #      :group_level => 2,
+  #      :limit => 9
+  #    }
+  #
+  #    {:ok, res} = run_query(context, args, "baz")
+  #    IO.inspect(res, label: "OUT")
+  #
+  #    assert res == [
+  #             {:row, [key: 1, value: 2]},
+  #             {:row, [key: 2, value: 2]},
+  #             {:row, [key: 3, value: 2]},
+  #             {:row, [key: [1, 1], value: 2]},
+  #             {:row, [key: [1, 2], value: 1]},
+  #             {:row, [key: [2, 1], value: 1]},
+  #             {:row, [key: [2, 3], value: 1]},
+  #             {:row, [key: [3, 1], value: 2]},
+  #             {:row, [key: [3, 4], value: 1]}
+  #           ]
+  #  end
+  #
+  #  test "group=2 count reduce with limit = 3", context do
+  #    args = %{
+  #      :reduce => true,
+  #      :group_level => 2,
+  #      :limit => 4
+  #    }
+  #
+  #    {:ok, res} = run_query(context, args, "baz")
+  #    IO.inspect(res, label: "OUT")
+  #
+  #    assert res == [
+  #             {:row, [key: 1, value: 2]},
+  #             {:row, [key: 2, value: 2]},
+  #             {:row, [key: 3, value: 2]},
+  #             {:row, [key: [1, 1], value: 1]}
+  #           ]
+  #  end
+  #
+  #  # [
+  #  #  row: [key: [2019, 1, 2], value: 1],
+  #  #  row: [key: [2019, 1, 4], value: 1],
+  #  #  row: [key: [2019, 2, 1], value: 1],
+  #  #  row: [key: [2019, 2, 3], value: 1]
+  #  # ]
+  #
+  #  test "group=2 count reduce with startkey", context do
+  #    args = %{
+  #      #          :reduce => true,
+  #      #          :group_level => 2,
+  #      :start_key => [2019, 1, 4]
+  #      #          :limit => 4
+  #    }
+  #
+  #    {:ok, res} = run_query(context, args, "boom")
+  #    IO.inspect(res, label: "OUT")
+  #
+  #    assert res == [
+  #             {:row, [key: [2019, 1], value: 1]},
+  #             {:row, [key: [2019, 2], value: 2]}
+  #           ]
+  #  end
+
+  test "group_level=0 _max reduce", context do
     args = %{
       :reduce => true,
-      :group => true
+      :group_level => 0
       #            :limit => 9
     }
 
-    {:ok, res} = run_query(context, args, "baz")
+    {:ok, res} = run_query(context, args, "max")
     IO.inspect(res, label: "OUT")
 
     assert res == [
-             {:row, [key: 1, value: 2]},
-             {:row, [key: 2, value: 2]},
-             {:row, [key: 3, value: 2]},
-             {:row, [key: [1, 1], value: 1]},
-             {:row, [key: [1, 1, 5], value: 1]},
-             {:row, [key: [1, 2, 6], value: 1]},
-             {:row, [key: [2, 1], value: 1]},
-             {:row, [key: [2, 3, 6], value: 1]},
-             {:row, [key: [3, 1], value: 1]},
-             {:row, [key: [3, 1, 5], value: 1]},
-             {:row, [key: [3, 4, 5], value: 1]}
+             {:row, [key: :null, value: 3]}
            ]
   end
-
-#  test "group=1 count reduce", context do
-#    args = %{
-#      :reduce => true,
-#      :group_level => 1
-#      #          :limit => 6
-#    }
-#
-#    {:ok, res} = run_query(context, args, "baz")
-#    IO.inspect(res, label: "OUT")
-#
-#    assert res == [
-#             {:row, [key: 1, value: 2]},
-#             {:row, [key: 2, value: 2]},
-#             {:row, [key: 3, value: 2]},
-#             {:row, [key: [1], value: 2]},
-#             {:row, [key: [2], value: 2]},
-#             {:row, [key: [3], value: 2]}
-#           ]
-#  end
-#
-  test "group=2 count reduce", context do
-    args = %{
-      :reduce => true,
-      :group_level => 2,
-      :limit => 9
-    }
-
-    {:ok, res} = run_query(context, args, "baz")
-    IO.inspect(res, label: "OUT")
-
-    assert res == [
-             {:row, [key: 1, value: 2]},
-             {:row, [key: 2, value: 2]},
-             {:row, [key: 3, value: 2]},
-             {:row, [key: [1, 1], value: 2]},
-             {:row, [key: [1, 2], value: 1]},
-             {:row, [key: [2, 1], value: 1]},
-             {:row, [key: [2, 3], value: 1]},
-             {:row, [key: [3, 1], value: 2]},
-             {:row, [key: [3, 4], value: 1]}
-           ]
-  end
-#
-#  test "group=2 count reduce with limit = 3", context do
-#    args = %{
-#      :reduce => true,
-#      :group_level => 2,
-#      :limit => 4
-#    }
-#
-#    {:ok, res} = run_query(context, args, "baz")
-#    IO.inspect(res, label: "OUT")
-#
-#    assert res == [
-#             {:row, [key: 1, value: 2]},
-#             {:row, [key: 2, value: 2]},
-#             {:row, [key: 3, value: 2]},
-#             {:row, [key: [1, 1], value: 1]}
-#           ]
-#  end
-#
-#  # [
-#  #  row: [key: [2019, 1, 2], value: 1],
-#  #  row: [key: [2019, 1, 4], value: 1],
-#  #  row: [key: [2019, 2, 1], value: 1],
-#  #  row: [key: [2019, 2, 3], value: 1]
-#  # ]
-#
-#  test "group=2 count reduce with startkey", context do
-#    args = %{
-#      #          :reduce => true,
-#      #          :group_level => 2,
-#      :start_key => [2019, 1, 4]
-#      #          :limit => 4
-#    }
-#
-#    {:ok, res} = run_query(context, args, "boom")
-#    IO.inspect(res, label: "OUT")
-#
-#    assert res == [
-#             {:row, [key: [2019, 1], value: 1]},
-#             {:row, [key: [2019, 2], value: 2]}
-#           ]
-#  end
 
   defp run_query(context, args, view) do
     db = context[:db]
@@ -182,7 +197,7 @@ defmodule CouchViewsReduceTest do
   end
 
   defp create_docs() do
-    for i <- 1..3 do
+    for i <- 1..1 do
       group =
         if rem(i, 3) == 0 do
           "first"
@@ -207,54 +222,56 @@ defmodule CouchViewsReduceTest do
          {"_id", "_design/bar"},
          {"views",
           {[
-             {"baz",
-              {[
-                 {"map",
-                  """
-                  function(doc) {
-                    emit(doc.value, doc.value);
-                    emit(doc.value, doc.value);
-                    emit([doc.value, 1], doc.value);
-                    emit([doc.value, doc.value + 1, doc.group.length], doc.value);
-
-                    if (doc.value === 3) {
-                      emit([1, 1, 5], 1);
-                      emit([doc.value, 1, 5], 1);
-                    }
-                   }
-                  """},
-                 {"reduce", "_count"}
-               ]}},
-             {"boom",
-              {[
-                 {"map",
-                  """
-                  function(doc) {
-                      var month = 1;
-                      if (doc.value % 2) {
-                          month = 2;
-                      }
-                      emit([2019, month, doc.value], doc.value);
-                  }
-                  """},
-                 {"reduce", "_count"}
-               ]}},
+#             {"baz",
+#              {[
+#                 {"map",
+#                  """
+#                  function(doc) {
+#                    emit(doc.value, doc.value);
+#                    emit(doc.value, doc.value);
+#                    emit([doc.value, 1], doc.value);
+#                    emit([doc.value, doc.value + 1, doc.group.length], doc.value);
+#
+#                    if (doc.value === 3) {
+#                      emit([1, 1, 5], 1);
+#                      emit([doc.value, 1, 5], 1);
+#                    }
+#                   }
+#                  """},
+#                 {"reduce", "_count"}
+#               ]}},
+#             {"boom",
+#              {[
+#                 {"map",
+#                  """
+#                  function(doc) {
+#                      var month = 1;
+#                      if (doc.value % 2) {
+#                          month = 2;
+#                      }
+#                      emit([2019, month, doc.value], doc.value);
+#                  }
+#                  """},
+#                 {"reduce", "_count"}
+#               ]}},
              {"max",
               {[
                  {"map",
                   """
                   function(doc) {
-                      emit(doc.value, doc.value);
-                      emit(doc.value, doc.value);
-                      emit([doc.value, 1], doc.value);
-                      emit([doc.value, doc.value + 1, doc.group.length], doc.value);
-
+                      //emit(doc.value, doc.value);
+                      //emit([doc.value, 1], doc.value);
+                      //emit([doc.value, doc.value + 1, doc.group.length], doc.value);
+                        emit(1, 1);
+                        emit(2, 2);
+                        emit(3, 3);
+                        emit(4, 4);
                       if (doc.value === 3) {
-                        emit([doc.value, 1, 5], 1);
+                       //emit([doc.value, 1, 5], 1);
                       }
                   }
                   """},
-                 {"reduce", "_count"}
+                 {"reduce", "_stats"}
                ]}}
            ]}}
        ]}

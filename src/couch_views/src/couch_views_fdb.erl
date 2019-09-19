@@ -220,8 +220,6 @@ reduce_fold_fwd({RowKey, EncodedValue}, #{next := value} = Acc) ->
 
     % TODO: Handle more than uint
     Value = ?bin2uint(EncodedValue),
-    io:format("FWD VAL ~p ~p ~p ~p ~n", [Key, RowGroupLevel, Value, ReduceType]),
-    io:format("GROUP SETTINGS ~p ~p ~n", [Group, GroupLevel]),
     UserAcc1 = case should_return_row(PrevGroupKey, Key, Group, GroupLevel, RowGroupLevel, ReduceType) of
         true ->
             UserCallback(Key, Value, UserAcc0);
@@ -299,6 +297,7 @@ write_doc(TxDb, Sig, ViewIds, Doc) ->
     clear_id_idx(TxDb, Sig, DocId),
 
     %% TODO: handle when there is no reduce
+    io:format("REDUCE RESULTS ~p ~n", [ReduceResults]),
     lists:foreach(fun({ViewId, NewRows, ReduceResult}) ->
         update_id_idx(TxDb, Sig, ViewId, DocId, NewRows),
 
@@ -317,6 +316,8 @@ write_doc(TxDb, Sig, ViewIds, Doc) ->
                 []
         end,
         update_map_idx(TxDb, Sig, ViewId, DocId, ExistingKeys, NewRows),
+        couch_views_reduce:update_reduce_idx(TxDb, Sig, ViewId, DocId,
+            ExistingKeys, ReduceResult),
         update_reduce_idx(TxDb, Sig, ViewId, DocId, ExistingKeys, ReduceResult)
     end, lists:zip3(ViewIds, Results, ReduceResults)).
 
@@ -634,10 +635,8 @@ process_reduce_rows(Rows) ->
     ReduceExact = encode_reduce_rows(Rows),
     ReduceGroups = lists:foldl(fun({Key, Val}, Groupings) ->
         Out = create_grouping(Key, Val, [], Groupings),
-        io:format("ROW G ~p ~p ~p ~n", [Key, Val, Out]),
         Out
     end, #{}, Rows),
-    io:format("INPUT ROWS ~n Groups ~p ~n Exact ~p ~n", [maps:to_list(ReduceGroups), Rows]),
     ReduceGroups1 = encode_reduce_rows(maps:to_list(ReduceGroups)),
     {ReduceExact, ReduceGroups1}.
 

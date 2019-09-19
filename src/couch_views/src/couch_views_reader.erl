@@ -32,50 +32,52 @@ read_reduce(Db, Mrst, ViewName, UserCallback, UserAcc0, Args) ->
     } = Mrst,
 
     ViewId = get_view_id(Lang, Args, ViewName, Views),
-    Fun = fun handle_reduce_row/3,
-
-    try
-        fabric2_fdb:transactional(Db, fun(TxDb) ->
-            Meta = get_meta(TxDb, Mrst, ViewId, Args),
-            UserAcc1 = maybe_stop(UserCallback(Meta, UserAcc0)),
-
-            #mrargs{
-                limit = Limit
-            } = Args,
-
-            Acc0 = #{
-                db => TxDb,
-                skip => Args#mrargs.skip,
-                mrargs => undefined,
-                callback => UserCallback,
-                acc => UserAcc1,
-                row_count => 0,
-                limit => Limit
-            },
-
-            Acc1 = lists:foldl(fun(KeyArgs, KeyAcc0) ->
-                Opts = reduce_mrargs_to_fdb_options(KeyArgs),
-                KeyAcc1 = KeyAcc0#{
-                    mrargs := KeyArgs
-                },
-                couch_views_fdb:fold_reduce_idx(
-                    TxDb,
-                    Sig,
-                    ViewId,
-                    Opts,
-                    Fun,
-                    KeyAcc1
-                )
-            end, Acc0, expand_keys_args(Args)),
-
-            #{
-                acc := UserAcc2
-            } = Acc1,
-            {ok, maybe_stop(UserCallback(complete, UserAcc2))}
-        end)
-    catch throw:{done, Out} ->
-        {ok, Out}
-    end.
+    couch_views_reduce:read_reduce(Db, Sig, ViewId, UserCallback,
+        UserAcc0, Args).
+%%    Fun = fun handle_reduce_row/3,
+%%
+%%    try
+%%        fabric2_fdb:transactional(Db, fun(TxDb) ->
+%%            Meta = get_meta(TxDb, Mrst, ViewId, Args),
+%%            UserAcc1 = maybe_stop(UserCallback(Meta, UserAcc0)),
+%%
+%%            #mrargs{
+%%                limit = Limit
+%%            } = Args,
+%%
+%%            Acc0 = #{
+%%                db => TxDb,
+%%                skip => Args#mrargs.skip,
+%%                mrargs => undefined,
+%%                callback => UserCallback,
+%%                acc => UserAcc1,
+%%                row_count => 0,
+%%                limit => Limit
+%%            },
+%%
+%%            Acc1 = lists:foldl(fun(KeyArgs, KeyAcc0) ->
+%%                Opts = reduce_mrargs_to_fdb_options(KeyArgs),
+%%                KeyAcc1 = KeyAcc0#{
+%%                    mrargs := KeyArgs
+%%                },
+%%                couch_views_fdb:fold_reduce_idx(
+%%                    TxDb,
+%%                    Sig,
+%%                    ViewId,
+%%                    Opts,
+%%                    Fun,
+%%                    KeyAcc1
+%%                )
+%%            end, Acc0, expand_keys_args(Args)),
+%%
+%%            #{
+%%                acc := UserAcc2
+%%            } = Acc1,
+%%            {ok, maybe_stop(UserCallback(complete, UserAcc2))}
+%%        end)
+%%    catch throw:{done, Out} ->
+%%        {ok, Out}
+%%    end.
 
 
 reduce_mrargs_to_fdb_options(Args) ->
