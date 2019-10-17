@@ -68,7 +68,7 @@ teardown(Db) ->
     ok.
 
 
-collation_test_() ->
+collation_test() ->
     {
         "Collation tests",
         {

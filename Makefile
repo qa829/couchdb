@@ -145,12 +145,12 @@ fauxton: share/www
 .PHONY: check
 # target: check - Test everything
 check: all
-	@$(MAKE) test-cluster-with-quorum
-	@$(MAKE) test-cluster-without-quorum
+#	@$(MAKE) test-cluster-with-quorum
+#	@$(MAKE) test-cluster-without-quorum
 	@$(MAKE) python-black
 	@$(MAKE) eunit
-	@$(MAKE) javascript
-	@$(MAKE) mango-test
+#	@$(MAKE) javascript
+#	@$(MAKE) mango-test
 	@$(MAKE) elixir
 #	@$(MAKE) build-test
 
