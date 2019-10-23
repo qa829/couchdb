@@ -326,8 +326,8 @@ couchTests.security_validation = function(debug) {
   }
   authDb.deleteDb();
   // have to clean up authDb on the backside :(
-  var req = CouchDB.newXhr();
-  req.open("DELETE", "http://127.0.0.1:15986/" + authDb_name, false);
-  req.send("");
-  CouchDB.maybeThrowError(req);
+  // var req = CouchDB.newXhr();
+  // req.open("DELETE", "http://127.0.0.1:15986/" + authDb_name, false);
+  // req.send("");
+  // CouchDB.maybeThrowError(req);
 };

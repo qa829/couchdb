@@ -46,7 +46,7 @@ couchTests.view_errors = function(debug) {
       });
       T(results.total_rows == 1);
       T(results.rows[0].key[1] == null);
-      
+
       // querying a view with invalid params should give a resonable error message
       var xhr = CouchDB.request("POST", "/" + db_name + "/_all_docs?startkey=foo", {
         headers: {"Content-Type": "application/json"},
@@ -141,21 +141,21 @@ couchTests.view_errors = function(debug) {
           T(e.error == "query_parse_error");
       }
 
-      var designDoc3 = {
-        _id:"_design/infinite",
-        language: "javascript",
-        views: {
-          "infinite_loop" :{map:"function(doc) {while(true){emit(doc,doc);}};"}
-        }
-      };
-      T(db.save(designDoc3).ok);
-
-      try {
-          db.view("infinite/infinite_loop");
-          T(0 == 1);
-      } catch(e) {
-          T(e.error == "os_process_error");
-      }
+      // var designDoc3 = {
+      //   _id:"_design/infinite",
+      //   language: "javascript",
+      //   views: {
+      //     "infinite_loop" :{map:"function(doc) {while(true){emit(doc,doc);}};"}
+      //   }
+      // };
+      // T(db.save(designDoc3).ok);
+      //
+      // try {
+      //     db.view("infinite/infinite_loop");
+      //     T(0 == 1);
+      // } catch(e) {
+      //     T(e.error == "os_process_error");
+      // }
 
       // Check error responses for invalid multi-get bodies.
       var path = "/" + db_name + "/_design/test/_view/no_reduce";

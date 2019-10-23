@@ -111,7 +111,7 @@ typedef struct {
     int             method;
     char*           url;
     CurlHeaders*    req_headers;
-    int8_t          last_status;
+    int16_t          last_status;
 } HTTPData;
 
 

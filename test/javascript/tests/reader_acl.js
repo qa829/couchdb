@@ -216,10 +216,10 @@ couchTests.reader_acl = function(debug) {
         
   usersDb.deleteDb();
   // have to delete the backside version now too :(
-  var req = CouchDB.newXhr();
-  req.open("DELETE", "http://127.0.0.1:15986/" + users_db_name, false);
-  req.send("");
-  CouchDB.maybeThrowError(req);
+  // var req = CouchDB.newXhr();
+  // req.open("DELETE", "http://127.0.0.1:15986/" + users_db_name, false);
+  // req.send("");
+  // CouchDB.maybeThrowError(req);
 
   secretDb.deleteDb();
 }

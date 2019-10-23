@@ -13,6 +13,7 @@
 #include <jsapi.h>
 #include <js/Initialization.h>
 #include <js/Conversions.h>
+#include <js/Wrapper.h>
 #include "config.h"
 #include "util.h"
 
@@ -135,11 +136,15 @@ enc_string(JSContext* cx, JS::Value arg, size_t* buflen)
     char* bytes = NULL;
     size_t srclen = 0;
     size_t byteslen = 0;
+    js::AutoStableStringChars rawChars(cx);
     
     str = arg.toString();
     if(!str) goto error;
 
-    src = (const char16_t *)js_to_string(cx, str).c_str();
+    if (!rawChars.initTwoByte(cx, str))
+        return NULL;
+
+    src = rawChars.twoByteRange().begin().get();
     srclen = JS_GetStringLength(str);
 
     if(!enc_charbuf(src, srclen, NULL, &byteslen)) goto error;
