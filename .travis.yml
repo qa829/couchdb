@@ -1,7 +1,8 @@
 language: elixir
 elixir: 1.7.4
 os: linux
-dist: trusty
+dist: xenial
+arch: s390x
 
 otp_release:
    - 22.0.5
